@@ -7,7 +7,7 @@ import { Resources } from './Resources';
 import Earth from './Earth'
 import Data from './Data'
 
-//注解：three.js 创建一个 3d 场景，并加入物体
+//注解：three.js 创建一个 3d 场景，并加入物体，已掌握
 export default class World {
   //注解：option 是外部传进来的，有一个属性dom，并保存起来
   public option: IWord;
@@ -95,7 +95,7 @@ export default class World {
         circleColor: 0x3892ff,
         lightColumn: {
           //起点颜色
-          startColor: 0x0d9ad5,
+          startColor: 0xe4007f,
           //终点颜色
           endColor: 0xffffff,
         },
@@ -104,9 +104,9 @@ export default class World {
         //飞线的颜色
         color: 0xf3ae76,
         //飞行线的颜色
-        flyLineColor: 0xf0933d,
+        flyLineColor: 0xff7714,
         //拖尾飞线的速度
-        speed: 0.01, 
+        speed: 0.004, 
       }
     });
     this.scene.add(this.earth.group);

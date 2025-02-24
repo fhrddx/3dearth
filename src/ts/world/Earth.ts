@@ -1,5 +1,5 @@
 import {
-  BufferAttribute, BufferGeometry, Color, DoubleSide, Group, Material, Mesh, MeshBasicMaterial,
+  BufferAttribute, BufferGeometry, Color, DoubleSide, Group, Material, Mesh, MeshBasicMaterial, NormalBlending,
   Object3D,
   Points, PointsMaterial, ShaderMaterial,
   SphereBufferGeometry, Sprite, SpriteMaterial, TextureLoader
@@ -7,13 +7,14 @@ import {
 import html2canvas from "html2canvas";
 import earthVertex from '../../shaders/earth/vertex.vs';
 import earthFragment from '../../shaders/earth/fragment.fs';
-import { createAnimateLine, createLightPillar, createPointMesh, createWaveMesh, getCirclePoints, lon2xyz } from "../Utils/common";
+import { createAnimateLine, createLightPillar, createPointMesh, createWaveMesh, getCirclePoints, getNearRandomPoint, lon2xyz } from "../Utils/common";
 import gsap from "gsap";
 import { flyArc } from "../Utils/arc";
 import { earthOptions, uniforms } from "../types";
 import * as THREE from "three";
+import { position } from "html2canvas/dist/types/css/property-descriptors/position";
 
-//注解：剩下2个问题：1、飞线的逻辑比较复杂，包括动画开始和结束怎么把控； 2、扫光动画，超级复杂，不好理解（顶点着色器、片元着色器）
+//注解：已掌握，剩下2个问题：1、飞线的逻辑比较复杂，包括动画开始和结束怎么把控； 2、扫光动画，超级复杂，不好理解（顶点着色器、片元着色器）
 export default class earth {
   //注解：这个是从构造函数获取
   private options: earthOptions;
@@ -37,9 +38,6 @@ export default class earth {
   //注解：下面这两个是shader需要的相关变量
   private uniforms: uniforms
   private timeValue: number;
-
-  //注释：大气层需要的传参
-  private cloud_uniforms: any;
 
   //注解：地球是否自转
   private isRotation: boolean;
@@ -102,45 +100,35 @@ export default class earth {
         value: null,
       },
     };
-
-    //注释：大气层相关参数
-    this.options.textures.flow.wrapS = THREE.RepeatWrapping;
-    this.options.textures.flow.wrapT = THREE.RepeatWrapping;
-    this.cloud_uniforms = {
-      cloudTexture: {
-        value: this.options.textures.flow
-      },
-      time: {
-        value: 0.0
-      },
-    };
   }
 
   async init(): Promise<void> {
     return new Promise(async (resolve) => {
-      //注解：创建地球
+      //注解：创建地球（已掌握）
       this.createEarth();
-      //注解：添加星星
+      //注解：添加星星（已掌握）
       this.createStars();
-      //注解：创建地球辉光
+      //注解：创建地球辉光（已掌握）
       this.createEarthGlow();
-      //注解：创建蓝色静态光圈、创建光柱、创建涟漪点位
+      //注解：创建蓝色静态光圈、创建光柱、创建涟漪点位（已掌握）
       await this.createMarkupPoint();
-      //创建地球的大气层
+      //创建地球的大气层（这个很难理解）
       this.createEarthAperture();
-      //注解：创建精灵文本标注
+      //注解：创建精灵文本标注（已掌握）
       await this.createSpriteLabel();
       //注解：创建环绕卫星
-      this.createWeiXin();
+      //this.createAnimateCircle();
       //创建飞线
-      this.createFlyLine();
+      //this.createFlyLine();
+      this.createWeiXin();
+
       //注解：开始显示出来
       this.show();
       resolve();
     })
   }
 
-  //注解：开场时，蹦出来的动画效果
+  //注解：开场时，蹦出来的动画效果（已掌握）
   show() {
     gsap.to(this.group.scale, {
       x: 1,
@@ -153,6 +141,7 @@ export default class earth {
 
   //注解：创建2个球体，并都加入 earthGroup 中（存在问题：顶点着色器、片元着色器的代码还不是很了解）
   createEarth() {
+    /*
     //注解：这里创建一个球体遮罩层，类似一个大气层
     const earth_border = new SphereBufferGeometry(
       this.options.earth.radius + 10,
@@ -177,7 +166,7 @@ export default class earth {
     //注解：将遮罩球体，添加到场景
     const earth_points = new Points(earth_border, pointMaterial);
     earth_points.name = 'earth_border';
-    this.earthGroup.add(earth_points);
+    this.earthGroup.add(earth_points);*/
 
     //注解：SphereBufferGeometry表示创建一个球体，第1个参数是球体半径，第2个和第3个参数，越大表示球体越圆滑，这个才是真正的地球
     const earth_geometry = new SphereBufferGeometry(
@@ -276,7 +265,7 @@ export default class earth {
     this.earthGroup.add(sprite);
   }
 
-  //注解：创建蓝色光圈贴近球面、光柱垂直球面、涟漪点位贴近球面
+  //注解：创建蓝色光圈贴近球面、光柱垂直球面、涟漪点位贴近球面（已掌握）
   async createMarkupPoint() {
     await Promise.all(this.options.data.map(async (item) => {
       //注解：每个Item 结构是 { startArray: { name: '', N: '', E: '' },  endArray: [ { name: '', N: '', E: '' }, { name: '', N: '', E: '' } ] }
@@ -357,46 +346,67 @@ export default class earth {
   }
 
   createEarthAperture() {
-    //顶点着色器
-    const VSHADER_SOURCE = 
-    `
-      varying vec2 v_Uv;
-      void main () {
-        //顶点纹理坐标
-        v_Uv = uv;
-        gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
-      }
-    `;
-    //片元着色器
-    const FSHADER_SOURCE = 
-    `
-      uniform float time; //时间变量
-      uniform sampler2D cloudTexture; //大气纹理图像
-      varying vec2 v_Uv; //片元纹理坐标
-      void main () {
-        vec2 new_Uv= v_Uv + vec2(0.01, 0.02) * time;   //向量加法，根据时间变量计算新的纹理坐标
-        //利用噪声随机使纹理坐标随机化
-        //vec4 noise_Color = texture2D( cloudTexture, new_Uv );    
-        //new_Uv.x += noise_Color.r * 0.2;
-        //new_Uv.y += noise_Color.g * 0.2;
-        vec4 colors = texture2D(cloudTexture, new_Uv);  //提取大气纹理图像的颜色值（纹素）
-        gl_FragColor = vec4(colors.rgb, colors.a * 0.6);
-      }
-    `
-    //着色器材质
-    const flowMaterial = new THREE.ShaderMaterial({
-      uniforms: this.cloud_uniforms,
-      //顶点着色器
-      vertexShader: VSHADER_SOURCE,
-      //片元着色器
-      fragmentShader: FSHADER_SOURCE,
-      transparent: true
-    })
-    //创建比基础球体略大的球状几何体
-    const fgeometry = new THREE.SphereGeometry(this.options.earth.radius * 1.002, 60, 60);
-    //创建大气球体
-    const fsphere = new THREE.Mesh(fgeometry, flowMaterial);
-    this.group.add(fsphere)
+    const vertexShader = [
+      "varying vec3	vVertexWorldPosition;",
+      "varying vec3	vVertexNormal;",
+      "varying vec4	vFragColor;",
+      "void main(){",
+      "	vVertexNormal	= normalize(normalMatrix * normal);", //将法线转换到视图坐标系中
+      "	vVertexWorldPosition	= (modelMatrix * vec4(position, 1.0)).xyz;", //将顶点转换到世界坐标系中
+      "	// set gl_Position",
+      "	gl_Position	= projectionMatrix * modelViewMatrix * vec4(position, 1.0);",
+      "}",
+    ].join("\n");
+
+    //大气层效果
+    const AeroSphere = {
+      uniforms: {
+        coeficient: {
+          type: "f",
+          value: 1.0,
+        },
+        power: {
+          type: "f",
+          value: 3,
+        },
+        glowColor: {
+          type: "c",
+          value: new Color(0x4390d1),
+        },
+      },
+      vertexShader: vertexShader,
+      fragmentShader: [
+        "uniform vec3	glowColor;",
+        "uniform float	coeficient;",
+        "uniform float	power;",
+        "varying vec3	vVertexNormal;",
+        "varying vec3	vVertexWorldPosition;",
+        "varying vec4	vFragColor;",
+        "void main(){",
+        "	vec3 worldCameraToVertex = vVertexWorldPosition - cameraPosition;", //世界坐标系中从相机位置到顶点位置的距离
+        "	vec3 viewCameraToVertex	= (viewMatrix * vec4(worldCameraToVertex, 0.0)).xyz;", //视图坐标系中从相机位置到顶点位置的距离
+        "	viewCameraToVertex= normalize(viewCameraToVertex);", //规一化
+        "	float intensity	= pow(coeficient + dot(vVertexNormal, viewCameraToVertex), power);",
+        "	gl_FragColor = vec4(glowColor, intensity);",
+        "}",
+      ].join("\n"),
+    };
+    //球体大气层
+    const material1 = new ShaderMaterial({
+      uniforms: AeroSphere.uniforms,
+      vertexShader: AeroSphere.vertexShader,
+      fragmentShader: AeroSphere.fragmentShader,
+      blending: NormalBlending,
+      transparent: true,
+      depthWrite: false,
+    });
+    const sphere = new SphereBufferGeometry(
+      this.options.earth.radius + 0,
+      50,
+      50
+    );
+    const mesh = new Mesh(sphere, material1);
+    this.earthGroup.add(mesh);
   }
 
   //注解：创建精灵文本标注
@@ -453,13 +463,107 @@ export default class earth {
     }))
   }
 
+  //注解：创建卫星环绕的效果（已掌握）每个卫星，通过 add 方式，加入到卫星轨道中，存在问题：后面需要看下怎么做环绕运动
+  createAnimateCircle() {
+    //注解：创建圆环点组合（这个这些点，都是在 ZOX 平面上）
+    const circlePoints = getCirclePoints({
+      //注解：圆的半径
+      radius: this.options.earth.radius + 15,
+      //注解：圆的切割数量
+      number: 150,
+      //注解：表示闭合
+      closed: true,
+    });
+
+    //注解：圆环材质
+    const circleMaterial = new MeshBasicMaterial({
+      color: "#0c3172",
+      transparent: true,
+      opacity: 0.4,
+      side: DoubleSide,
+    });
+
+    //注解：创建一个管道模型，来实现卫星轨道，并加入到 earthGroup 中（注意第一条卫星轨迹，是放在ZOX平面上的）
+    const line = createAnimateLine({
+      pointList: circlePoints,
+      material: circleMaterial,
+      number: 100,
+      radius: 0.1,
+    });
+    line.name = 'track';
+    this.earthGroup.add(line);
+
+    //注解：再clone一条线出来，大小和倾斜度改变一下，并且有一定的倾斜度，即是绕着Z轴倾斜一定的角度
+    const l2 = line.clone();
+    l2.scale.set(1.2, 1.2, 1.2);
+    l2.rotateZ(Math.PI / 6);
+    l2.name = 'track';
+    this.earthGroup.add(l2);
+
+    //注解：再clone一条线出来，大小和倾斜度改变一下，并且有一定的倾斜度，即是绕着Z轴倾斜一定的角度
+    const l3 = line.clone();
+    l3.scale.set(0.8, 0.8, 0.8);
+    l3.rotateZ(-Math.PI / 6);
+    l3.name = 'track';
+    this.earthGroup.add(l3);
+
+    this.circleLineList.push(line, l2, l3);
+
+    //注解：创建卫星球体3个
+    const ball = new Mesh(
+      new SphereBufferGeometry(this.options.satellite.size, 32, 32),
+      new MeshBasicMaterial({
+        color: "#e0b187",
+      })
+    );
+    const ball2 = new Mesh(
+      new SphereBufferGeometry(this.options.satellite.size, 32, 32),
+      new MeshBasicMaterial({
+        color: "#628fbb",
+      })
+    );
+    const ball3 = new Mesh(
+      new SphereBufferGeometry(this.options.satellite.size, 32, 32),
+      new MeshBasicMaterial({
+        color: "#806bdf",
+      })
+    );
+    ball.name = ball2.name = ball3.name = "卫星";
+
+    for (let i = 0; i < this.options.satellite.number; i++) {
+      const ball01 = ball.clone();
+      //注解：一根线上总共有几个球，根据数量平均分布一下
+      const num = Math.floor(circlePoints.length / this.options.satellite.number);
+      //注解：原来圆上的点，都是在ZOX平面上的，所以第二个一定是0，通过add的方式，加入父级mesh，会继承父级的旋转，即上面代码中的 rotateZ 也会在 ball 上起作用
+      ball01.position.set(
+        circlePoints[num * (i + 1)][0] * 1,
+        0,
+        circlePoints[num * (i + 1)][2] * 1
+      );
+      line.add(ball01);
+      //注解：第二个球
+      const ball02 = ball2.clone();
+      const num02 = Math.floor(circlePoints.length / this.options.satellite.number)
+      ball02.position.set(
+        circlePoints[num02 * (i + 1)][0] * 1,
+        0,
+        circlePoints[num02 * (i + 1)][2] * 1
+      );
+      l2.add(ball02);
+      //注解：第三个球
+      const ball03 = ball2.clone();
+      const num03 = Math.floor(circlePoints.length / this.options.satellite.number)
+      ball03.position.set(
+        circlePoints[num03 * (i + 1)][0] * 1,
+        0,
+        circlePoints[num03 * (i + 1)][2] * 1
+      );
+      l3.add(ball03);
+    }
+  }
+
   //注解：在地球上面添加飞线
   createFlyLine() {
-    //注解：设置飞线管道贴图的重复方向
-    this.options.textures.flyline.wrapT =  THREE.RepeatWrapping;
-    this.options.textures.flyline.wrapS = THREE.RepeatWrapping;
-    this.options.textures.flyline.repeat.set(1, 2);
-    //注解：创建飞线组合，加入地球组合中
     this.flyLineArcGroup = new Group();
     this.flyLineArcGroup.userData['flyLineArray'] = [];
     this.earthGroup.add(this.flyLineArcGroup);
@@ -472,9 +576,7 @@ export default class earth {
           cities.startArray.N,
           item.E,
           item.N,
-          this.options.flyLine.color,
-          this.options.flyLine.flyLineColor,
-          this.options.textures.flyline
+          this.options.flyLine
         );
         //注解：飞线插入flyArcGroup中
         this.flyLineArcGroup.add(arcline);
@@ -485,15 +587,13 @@ export default class earth {
 
   //创建卫星轨道
   createWeiXin(){
-    //注解：设置卫星轨道的重复方向
-    this.options.textures.weixincircle.wrapT =  THREE.RepeatWrapping;
-    this.options.textures.weixincircle.wrapS = THREE.RepeatWrapping;
-    this.options.textures.weixincircle.repeat.set(1, 2);
-
+    this.options.textures.flyline.wrapT =  THREE.RepeatWrapping;
+    this.options.textures.flyline.wrapS = THREE.RepeatWrapping;
+    this.options.textures.flyline.repeat.set(1, 2);
     //注解：创建圆环点组合（这个这些点，都是在 ZOX 平面上）
     const circlePoints = getCirclePoints({
       //注解：圆的半径
-      radius: this.options.earth.radius * 1.25,
+      radius: this.options.earth.radius * 1.8,
       //注解：圆的切割数量
       number: 100,
       //注解：表示闭合
@@ -502,13 +602,14 @@ export default class earth {
 
     //注解：圆环材质
     const circleMaterial = new MeshBasicMaterial({
-      color: new Color("#0cd1eb"),
-      map: this.options.textures.weixincircle,
+      //color: new Color("#0cd1eb"),
+      map: this.options.textures.flyline,
       side: DoubleSide,
       transparent: true,
       depthWrite: false,
-      opacity: 0.2,
+      opacity: 1,
     });
+    circleMaterial.needsUpdate = true;
 
     //注解：创建一个管道模型，来实现卫星轨道，并加入到 earthGroup 中（注意第一条卫星轨迹，是放在ZOX平面上的）
     const line = createAnimateLine({
@@ -519,42 +620,67 @@ export default class earth {
       radialSegments: 2
     });
     line.name = 'track_weixin';
-    this.earthGroup.add(line);
-    //注解：可以通过以下方式让卫星轨道倾斜一定的角度
-    //line.rotation.z = -Math.PI / 9;
 
-    //注解：创建卫星球体2个
-    const ball = new Mesh(
-      new SphereBufferGeometry(this.options.satellite.size, 32, 32),
-      new MeshBasicMaterial({
-        color: "#e0b187",
-      })
-    );
-    const ball2 = ball.clone();
-    ball.position.set(
-      circlePoints[0][0],
-      0,
-      circlePoints[0][2]
-    );
-    ball2.position.set(
-      circlePoints[Math.floor(circlePoints.length/2)][0],
-      0,
-      circlePoints[Math.floor(circlePoints.length/2)][2]
-    );
-    line.add(ball);
-    line.add(ball2);
+    
+    this.group.add(line)
+
+
+    line.rotation.z = -Math.PI / 36;
+
+
     this.circleLineList.push(line);
+
+
+
+    //注解：需要用一个缓冲几何体，来存放不规则模型的点信息
+    const geometry = new BufferGeometry();
+    const circlePointCount = circlePoints.length;
+    const positions = [];
+    for(let i=0; i < circlePointCount; i++){
+      const vec31 = getNearRandomPoint({
+        x: circlePoints[i][0],
+        y: circlePoints[i][1],
+        z: circlePoints[i][2],
+        r: 3
+      })
+      positions.push(vec31.x, vec31.y, vec31.z);
+      if(i % 2 === 0){
+        const vec32 = getNearRandomPoint({
+          x: circlePoints[i][0],
+          y: circlePoints[i][1],
+          z: circlePoints[i][2],
+          r: 3
+        })
+        positions.push(vec32.x, vec32.y, vec32.z);
+      }
+    }
+    geometry.setAttribute("position", new BufferAttribute(new Float32Array(positions), 3));
+
+    //注解：这个几何体的材质
+    const material = new PointsMaterial({
+      map: this.options.textures.dotBlur,
+      size: 0.8,
+      sizeAttenuation: true,
+      transparent: true,
+      depthWrite: false,
+      blending: 2,
+      color: new Color("#bef9e5"),
+    })
+    const points = new Points(geometry, material);
+    line.add(points);
   }
 
   render() {
-    //注解：整个球体自西往东旋转 0.002 方向是：自西向东
+    //注解：整个球体自西往东旋转 0.002 （已掌握）方向是：自西向东
     if (this.isRotation) {
       this.earthGroup.rotation.y += this.options.earth.rotateSpeed;
     }
-    //注解：整个球体自东往西旋转 -0.01 会比地球旋转要快一点，方向是：自东向西（负数）
+
+    //注解：整个球体自东往西旋转 -0.01 会比地球旋转要快一点（已掌握），方向是：自东向西（负数）
     this.circleLineList.forEach((e) => {
-      e.rotateY(this.options.satellite.rotateSpeed);
+      this.options.textures.flyline.offset.x = this.options.textures.flyline.offset.x + 0.01
     });
+    
     //注解：通过不断改变这个缩放，让波纹动起来 mesh.scale.set 、 mesh.material.opacity 来改变物体的大小和材质
     if (this.waveMeshArr.length) {
       this.waveMeshArr.forEach((mesh: Mesh) => {
@@ -583,6 +709,5 @@ export default class earth {
 
     //注解：扫光动画加入时间参数
     this.uniforms.time.value = this.uniforms.time.value < -this.timeValue ? this.timeValue : this.uniforms.time.value - 1;
-    this.cloud_uniforms.time.value += 0.02
   }
 }

@@ -1,6 +1,7 @@
 /**
  * 资源文件
  * 把模型和图片分开进行加载
+ * 已掌握
  */
 
 interface ITextures {
@@ -22,8 +23,7 @@ const fileSuffix = [
   'light_column',
   'aircraft',
   'flyline',
-  'flow',
-  'weixincircle'
+  'dotBlur'
 ]
 
 const textures = fileSuffix.map(item => {
