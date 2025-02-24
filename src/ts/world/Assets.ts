@@ -1,6 +1,7 @@
 /**
  * 资源文件
  * 把模型和图片分开进行加载
+ * 已掌握
  */
 
 interface ITextures {
@@ -21,9 +22,8 @@ const fileSuffix = [
   'glow',
   'light_column',
   'aircraft',
-  'flyline',
   'flow',
-  'weixincircle'
+  'eartharea',
 ]
 
 const textures = fileSuffix.map(item => {
@@ -36,6 +36,11 @@ const textures = fileSuffix.map(item => {
 textures.push({
   name: 'earth',
   url: filePath + 'earth.jpg'
+})
+
+textures.push({
+  name: 'earthborder',
+  url: filePath + 'earthborder.jpg'
 })
 
 const resources: IResources = {

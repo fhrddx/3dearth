@@ -1,7 +1,7 @@
 import { CatmullRomCurve3, DoubleSide, Group, Mesh, MeshBasicMaterial, PlaneBufferGeometry, Texture, TubeGeometry, Vector3 } from "three";
 import punctuation from "../types";
 
-//注解：光柱底座矩形平面
+//注解：光柱底座矩形平面（已掌握）
 export const createPointMesh = (options: {
   radius: number, 
   lon: number,
@@ -14,8 +14,8 @@ export const createPointMesh = (options: {
   const mesh = new Mesh(geometry, options.material);
   const size = options.radius * 0.05;
   mesh.scale.set(size, size, size);
-  //注解：经纬度转球面坐标,并设置这个平面的位置（注意这个1.0015，主要还是比地球稍微高出一点）
-  const coord = lon2xyz(options.radius * 1.0021, options.lon, options.lat);
+  //注解：经纬度转球面坐标,并设置这个平面的位置（注意这个1.001，主要还是比地球稍微高出一点）
+  const coord = lon2xyz(options.radius * 1.001, options.lon, options.lat);
   mesh.position.set(coord.x, coord.y, coord.z);
   //注解：将这个向量，转化为长度为1，方向不变的变量（这个其实就是这个平面的单位法向量）
   const coordVec3 = new Vector3(coord.x, coord.y, coord.z).normalize();
@@ -26,7 +26,7 @@ export const createPointMesh = (options: {
   return mesh;
 }
 
-//注解：创建柱状，需要注意的是，translate 之后如果还设置组合的位置，那这个组合的中心点为 translate 之前的那个中心点
+//注解：创建柱状（已掌握）需要注意的是，translate 之后如果还设置组合的位置，那这个组合的中心点为 translate 之前的那个中心点
 export const createLightPillar = (options: { radius: number, lon: number, lat: number, index: number, textures: Record<string, Texture>, punctuation: punctuation }) => {
   //注解：这里是设置光柱的高度
   const height = options.radius * 0.3;
@@ -56,7 +56,7 @@ export const createLightPillar = (options: { radius: number, lon: number, lat: n
   group.add(mesh, mesh.clone().rotateZ(Math.PI / 2));
 
   //注解：将经纬度坐标转化为球面坐标，然后将这个组合设置在这个坐标上面（这时候还没完，因为这个组合没有垂直于球体）
-  const SphereCoord = lon2xyz(options.radius * 1.0023, options.lon, options.lat);
+  const SphereCoord = lon2xyz(options.radius, options.lon, options.lat);
   group.position.set(SphereCoord.x, SphereCoord.y, SphereCoord.z);
 
   //注解：将位置向量变成程度为1的同方向的向量
@@ -96,7 +96,7 @@ export const createWaveMesh = (options: { radius, lon, lat, textures }) => {
   mesh.userData['scale'] = Math.random() * 1.0;
 
   //注解：将经纬度坐标转化为球体坐标，并将物体放在这个位置上面
-  const coord = lon2xyz(options.radius * 1.0023, options.lon, options.lat);
+  const coord = lon2xyz(options.radius * 1.001, options.lon, options.lat);
   mesh.position.set(coord.x, coord.y, coord.z);
 
   //注解：将这个平面转一下角度，使之贴近地球表面
@@ -107,7 +107,7 @@ export const createWaveMesh = (options: { radius, lon, lat, textures }) => {
   return mesh;
 }
 
-//注解：{地球半径} R  {经度(角度值)} longitude  {维度(角度值)} latitude
+//注解：{地球半径} R  {经度(角度值)} longitude  {维度(角度值)} latitude （已掌握）
 export const lon2xyz = (R:number, longitude:number, latitude:number): Vector3 => {
   //转弧度值
   let lon = longitude * Math.PI / 180;
@@ -123,7 +123,7 @@ export const lon2xyz = (R:number, longitude:number, latitude:number): Vector3 =>
   return new Vector3(x, y, z);
 }
 
-//注解：这里是将ZOX平面上以原点为圆心，半径为R的圆切割成 N 个点，将这些点首尾连接（最后一个数据等于第一个）保存起来，并返回
+//注解：这里是将ZOX平面上以原点为圆心，半径为R的圆切割成 N 个点，将这些点首尾连接（最后一个数据等于第一个）保存起来，并返回（已掌握）
 export const getCirclePoints = (option) => {
   const list = [];
   for (
@@ -141,7 +141,7 @@ export const getCirclePoints = (option) => {
   return list;
 }
 
-//注解：创建圆环轨道
+//注解：创建圆环轨道（已掌握）
 export const createAnimateLine = (option) => {
   //注解：由多个点数组构成的曲线，通常用于道路
   const linePoint = option.pointList.map((item: any) => new Vector3(item[0], item[1], item[2]));

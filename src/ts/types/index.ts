@@ -17,32 +17,32 @@ type earthOptions = {
   data: {
     startArray: {
       name: string,
-      E: number, //经度
-      N: number, //维度
+      E: number, // 经度
+      N: number, // 维度
     },
     endArray: {
       name: string,
-      E: number, //经度
-      N: number, //维度
+      E: number, // 经度
+      N: number, // 维度
     }[]
   }[]
-  textures: Record<string, Texture>, //贴图
+  textures: Record<string, Texture>, // 贴图
   earth: {
-    radius: number,      //地球半径
-    rotateSpeed: number, //地球旋转速度
-    isRotation: boolean  //地球组是否自转
+    radius: number, // 地球半径
+    rotateSpeed: number, // 地球旋转速度
+    isRotation: boolean // 地球组是否自转
   }
   satellite: {
-    show: boolean,       //是否显示卫星
-    rotateSpeed: number, //旋转速度
-    size: number,        //卫星大小
-    number: number,      // 一个圆环几个球
+    show: boolean, // 是否显示卫星
+    rotateSpeed: number, // 旋转速度
+    size: number, // 卫星大小
+    number: number, // 一个圆环几个球
   },
   punctuation: punctuation,
   flyLine: {
-    color: number,        //飞线轨道的颜色
-    speed: number,        //飞线拖尾线速度
-    flyLineColor: number  //飞线的颜色
+    color: number, // 飞线的颜色
+    speed: number, // 飞机拖尾线速度
+    flyLineColor: number // 飞行线的颜色
   },
 }
 
@@ -53,7 +53,9 @@ type uniforms = {
   power: { type: string; value: number; }
   time: { type: string; value: any; }
   isHover: { value: boolean; };
-  map: { value: Texture }
+  map: { value: Texture };
+  area: { value: Texture };
+  border: { value: Texture };
 }
 
 export default punctuation;

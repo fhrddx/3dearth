@@ -1,13 +1,12 @@
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-nocheck
-import { 
-  ArcCurve, BufferGeometry,
-  Line, LineBasicMaterial, MeshBasicMaterial,DoubleSide,Quaternion, Vector3 
-} from 'three';
+import { ArcCurve, BufferAttribute, BufferGeometry,
+Color, Line, LineBasicMaterial, Points, PointsMaterial, 
+Quaternion, Vector3 } from 'three';
 import { lon2xyz } from './common';
-import { createAnimateLine } from "../Utils/common";
 
-//注解：计算A、B两点和顶点O构成的AOB夹角弧度值
+//注解：计算A、B两点和顶点O构成的AOB夹角弧度值（已掌握）
 function radianAOB(A, B, O) {
   // dir1、dir2：球面上两个点和球心构成的方向向量
   const dir1 = A.clone().sub(O).normalize();
@@ -20,10 +19,10 @@ function radianAOB(A, B, O) {
 }
 
 /*
-注解：绘制一条圆弧曲线模型Line
+注解：绘制一条圆弧曲线模型Line （已掌握）
 5个参数含义：(圆心横坐标, 圆心纵坐标, 飞线圆弧轨迹半径, 开始角度, 结束角度)
 */
-function circleLine(x, y, r, startAngle, endAngle, color) {
+function circleLine(x, y, r, startAngle, endAngle,color) {
   //注解：创建一个缓冲几何体
   const geometry = new BufferGeometry();
   //注解：ArcCurve创建圆弧曲线，注意：弧度0表示x轴正方向，弧度 pi/2 表示Y轴正方向，是逆时针方向转动的
@@ -34,16 +33,14 @@ function circleLine(x, y, r, startAngle, endAngle, color) {
   geometry.setFromPoints(points);
   //注解：线条材质
   const material = new LineBasicMaterial({
-    color: color || 0xd18547,
-    opacity: 0.6,
-    transparent: true
+    color:color || 0xd18547,
   });
   const line = new Line(geometry, material);
   return line;
 }
 
 /*
-注解：逻辑有点复杂
+注解：逻辑有点复杂，已掌握
 * 把3D球面上任意的两个飞线起点和结束点绕球心旋转到到XOY平面上，
 * 同时保持关于y轴对称，借助旋转得到的新起点和新结束点绘制
 * 一个圆弧，最后把绘制的圆弧反向旋转到原来的起点和结束点即可
@@ -94,9 +91,9 @@ function _3Dto2D(startSphere, endSphere) {
   }
 }
 
-//注解：求三个点的外接圆圆心，p1, p2, p3表示三个点的坐标Vector3 （这个纯粹是数学推导公式，网上都有，可以查下）
+//注解：求三个点的外接圆圆心，p1, p2, p3表示三个点的坐标Vector3 （这个纯粹是数学推导公式，网上都有，可以查下）已掌握
 function threePointCenter(p1, p2, p3) {
-  const L1 = p1.lengthSq();
+  const L1 = p1.lengthSq(); //p1到坐标原点距离的平方
   const L2 = p2.lengthSq();
   const L3 = p3.lengthSq();
   const x1 = p1.x,
@@ -110,16 +107,16 @@ function threePointCenter(p1, p2, p3) {
   const y = (L3 * x2 + L2 * x1 + L1 * x3 - L1 * x2 - L2 * x3 - L3 * x1) / S / 2;
   //三点外接圆圆心坐标
   const center = new Vector3(x, y, 0);
-  return center;
+  return center
 }
 
 /**
- * 注解：转变2次坐标，然后再转回来
+ * 注解：转变2次坐标，然后再转回来（已掌握）
  * 输入地球上任意两点的经纬度坐标，通过函数flyArc可以绘制一个飞线圆弧轨迹
  * lon1,lat1:轨迹线起点经纬度坐标
  * lon2,lat2：轨迹线结束点经纬度坐标
  */
-function flyArc(radius, lon1, lat1, lon2, lat2, lineColor, flyLineColor, flyLineTexture) {
+function flyArc(radius, lon1, lat1, lon2, lat2,options) {
   //注解：将开始地点，经纬度坐标转为球面坐标
   const sphereCoord1 = lon2xyz(radius, lon1, lat1);
   const startSphereCoord = new Vector3(sphereCoord1.x, sphereCoord1.y, sphereCoord1.z);
@@ -129,17 +126,17 @@ function flyArc(radius, lon1, lat1, lon2, lat2, lineColor, flyLineColor, flyLine
   //注解：计算绘制圆弧需要的关于y轴对称的起点、结束点和旋转四元数
   const startEndQua = _3Dto2D(startSphereCoord, endSphereCoord)
   // 调用arcXOY函数绘制一条圆弧飞线轨迹
-  const arcline = arcXOY(radius, startEndQua.startPoint, startEndQua.endPoint,lineColor, flyLineColor, flyLineTexture);
+  const arcline = arcXOY(radius, startEndQua.startPoint, startEndQua.endPoint,options);
   arcline.quaternion.multiply(startEndQua.quaternion)
   return arcline;
 }
 
 /*
- 注解：飞线段运动范围startAngle ~ flyEndAngle
+ 注解：已掌握，存在问题： 飞线段运动范围startAngle~flyEndAngle 这部分不是很了解
  通过函数arcXOY()可以在XOY平面上绘制一个关于y轴对称的圆弧曲线
  * startPoint, endPoint：表示圆弧曲线的起点和结束点坐标值，起点和结束点关于y轴对称
  * 同时在圆弧轨迹的基础上绘制一段飞线*/
- function arcXOY(radius, startPoint, endPoint, lineColor, flyLineColor, flyLineTexture) {
+ function arcXOY(radius,startPoint, endPoint,options) {
   //注解：计算弦的中点
   const middleV3 = new Vector3().addVectors(startPoint, endPoint).multiplyScalar(0.5);
   //注解：计算弦的中点与圆心的向量，并且归一化
@@ -151,9 +148,7 @@ function flyArc(radius, lon1, lat1, lon2, lat2, lineColor, flyLineColor, flyLine
   /*设置飞线轨迹圆弧的中间点坐标
   弧度值 * radius * 0.2：表示飞线轨迹圆弧顶部距离地球球面的距离
   起点、结束点相聚越远，构成的弧线顶部距离球面越高*/
-  const r = radius + earthRadianAngle * radius * 0.2;
-  const limitR = radius * 1.15;
-  const arcTopCoord = dir.multiplyScalar( r > limitR ? limitR : r);
+  const arcTopCoord = dir.multiplyScalar(radius + earthRadianAngle * radius * 0.2);
 
   //注解：这里是根据圆上的三个点，计算出圆心的位置，这里其实是可以根据数学知识推导出来的。这个圆心也就是飞线所在圆的圆心。
   const flyArcCenter = threePointCenter(startPoint, endPoint, arcTopCoord);
@@ -168,112 +163,42 @@ function flyArc(radius, lon1, lat1, lon2, lat2, lineColor, flyLineColor, flyLine
   //注解：飞线圆弧结束角度
   const endAngle = Math.PI - startAngle;
   //注解：调用圆弧线模型的绘制函数，画出圆弧的轨迹
-  const arcline = circleLine(flyArcCenter.x, flyArcCenter.y, flyArcR, startAngle, endAngle, lineColor);
-
+  const arcline = circleLine(flyArcCenter.x, flyArcCenter.y, flyArcR, startAngle, endAngle, options.color);
   //注解：给自定义属性center，表示飞线圆弧的圆心
   arcline.center = flyArcCenter;
   //注解：给自定义属性topCoord，表示飞线圆弧的最高点
   arcline.topCoord = arcTopCoord;
-
   //注解：设定动态弧线的长度，为总轨迹长度的七分之一
-  const flyAngle = (endAngle - startAngle) / 4;
+  const flyAngle = (endAngle - startAngle) / 7;
   //注解：画出动态飞线的轨迹（注意这里是以原点为圆心，所以需要手动设置下Y轴位置）
-  const flyLine = createFlyLine(flyArcR, startAngle, startAngle + flyAngle, flyLineColor, flyLineTexture);
+  const flyLine = createFlyLine(flyArcR, startAngle, startAngle + flyAngle, options.flyLineColor);
   //注解：平移飞线圆弧和飞线轨迹圆弧重合
   flyLine.position.y = flyArcCenter.y;
   //注解：飞线段flyLine作为飞线轨迹arcLine子对象，继承飞线轨迹平移旋转等变换
   arcline.add(flyLine);
 
-  //飞线段运动范围 startAngle ~ flyEndAngle (flyEndAngle、startAngle、AngleZ 都是自定义属性)
+  //飞线段运动范围startAngle~flyEndAngle
   flyLine.flyEndAngle = endAngle - startAngle - flyAngle;
   flyLine.startAngle = startAngle;
   // arcline.flyEndAngle：飞线段当前角度位置，这里设置了一个随机值用于演示
   flyLine.AngleZ = arcline.flyEndAngle * Math.random();
-
   // flyLine.rotation.z = arcline.AngleZ;
   // arcline.flyLine指向飞线段,便于设置动画是访问飞线段
   arcline.userData['flyLine'] = flyLine;
-  return arcline;
+  return arcline
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function createFlyLine(radius, startAngle, endAngle, color, flyLineTexture) {
-    const arc = new ArcCurve(0, 0, radius, startAngle, endAngle, false);
-    const pointsArr = arc.getSpacedPoints(80);
-    const circlePointsArr = [];
-    pointsArr.forEach(e => {
-      circlePointsArr.push([e.x, e.y, 0]);
-    })
-
-    //console.log(pointsArr)
-
-
-
-
-
-    //注解：圆环材质
-    const circleMaterial = new MeshBasicMaterial({
-      color: color,
-      map: flyLineTexture,
-      side: DoubleSide,
-      transparent: true,
-      depthWrite: false,
-      opacity: 1,
-    });
-
-
-
-    //注解：创建一个管道模型，来实现卫星轨道，并加入到 earthGroup 中（注意第一条卫星轨迹，是放在ZOX平面上的）
-    const line = createAnimateLine({
-      pointList: circlePointsArr,
-      material: circleMaterial,
-      number: 150,
-      radius: 0.2,
-      radialSegments: 2
-    });
-
-    return line;
-
-
-  
-
-    /*
-
-
-
-
-
-
-  //------------------------------------------------------------------------------------------------------------
+/*
+* 绘制一条圆弧飞线
+* 5个参数含义：( 飞线圆弧轨迹半径, 开始角度, 结束角度)
+*/
+function createFlyLine(radius, startAngle, endAngle, color) {
   //注解：声明一个几何体对象BufferGeometry
   const geometry = new BufferGeometry();
   //注解：ArcCurve创建圆弧曲线（注意这里是以原点为圆心）
   const arc = new ArcCurve(0, 0, radius, startAngle, endAngle, false);
   //注解：getSpacedPoints是基类Curve的方法，返回一个vector2对象作为元素组成的数组，分段数80，返回81个顶点
-  const pointsArr = arc.getSpacedPoints(80);   //---------------------------------------------------------------
+  const pointsArr = arc.getSpacedPoints(80); 
   //注解：设置这个缓冲几何体的顶点
   geometry.setFromPoints(pointsArr);
 
@@ -329,19 +254,7 @@ function createFlyLine(radius, startAngle, endAngle, color, flyLineTexture) {
   const FlyLine = new Points(geometry, material);
   FlyLine.name = "飞行线";
   return FlyLine;
-
-  */
 }
-
-
-
-
-
-
-
-
-
-
 
 export {
   arcXOY,
