@@ -1,6 +1,7 @@
 /*
  * 创建 threejs 四大天王
  * 场景、相机、渲染器、控制器
+ * 已掌握
  */
 
 import * as THREE from 'three';
@@ -32,7 +33,7 @@ export class Basic {
       1,
       100000
     );
-    this.camera.position.set(-450, 180, -600);
+    this.camera.position.set(0, 30, -250);
 
     //注解：第3步，设置好渲染器
     this.renderer = new THREE.WebGLRenderer({

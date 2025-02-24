@@ -1,4 +1,5 @@
 
+//注释：已掌握
 export default [
   {
     startArray: {

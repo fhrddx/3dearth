@@ -2,6 +2,7 @@
 /**
  * 声明着色器
  */
+
 declare module '*.fs' {
 	const value: string
 	export default value

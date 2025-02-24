@@ -1,5 +1,6 @@
 /**
  * 资源管理和加载
+ * 已掌握
  */
 import { LoadingManager, Texture, TextureLoader } from 'three';
 import { resources } from './Assets'

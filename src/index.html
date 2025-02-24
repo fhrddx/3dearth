@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh">
+  <html>
+
 <head>
 	<title>GhostCat</title>
   <meta charset="utf-8">
@@ -33,11 +35,13 @@
     color:rgb(19, 22, 226);
     font-size: 30px;
   }
+
   #earth-canvas{
     height: 100%;
     width: 100%;
     background: #010826;
   }
+  
   #html2canvas {
     position: absolute;
     z-index: -1;
@@ -49,13 +53,14 @@
     pointer-events: none;
     color: #fff;
   }
+  
   .css3d-wapper .fire-div {
     font-size: 20px;
     font-weight: 600;
-    border-top: 3px solid rgb(13, 154, 213);
+    border-top: 3px solid #0cd1eb;
     padding: 6px 8px;
     min-width: 50px;
-    background: rgba(0, 0, 0, 0.6);
+    background: rgba(40, 108, 181, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -106,6 +111,7 @@
     position: relative;
     animation: sk-chase 2.5s infinite linear both;
   }
+
   .sk-chase-dot {
     width: 100%;
     height: 100%;
@@ -114,6 +120,7 @@
     top: 0;
     animation: sk-chase-dot 2s infinite ease-in-out both;
   }
+
   .sk-chase-dot::before {
     content: '';
     display: block;
